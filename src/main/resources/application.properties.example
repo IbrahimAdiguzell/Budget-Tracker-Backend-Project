@@ -1,0 +1,11 @@
+spring.application.name=BudgetTracker
+
+# Veritabani Ayarlari (Kendi bilgilerini gir)
+spring.datasource.url=jdbc:postgresql://localhost:5432/budgettracker
+spring.datasource.username=postgres
+spring.datasource.password=BURAYA_SIFRENI_YAZ
+spring.jpa.hibernate.ddl-auto=update
+
+# Mail Ayarlari (Gerekirse)
+spring.mail.host=smtp.gmail.com
+# ...

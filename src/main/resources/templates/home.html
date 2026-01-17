@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>BudgetTracker - Ana Sayfa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        /* VARSAYILAN (LIGHT) TEMA */
+        body { background-color: #f8f9fa; transition: background-color 0.3s, color 0.3s; }
+        .navbar { background-color: rgb(0, 128, 128) !important; }
+        .card { border-radius: 15px; border: none; shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s; }
+        .table-hover tbody tr:hover { background-color: #f1f4f9; }
+        .action-btn { width: 32px; height: 32px; padding: 0; line-height: 32px; text-align: center; border-radius: 50%; }
+        .btn-outline-secondary.active { background-color: #6c757d; color: white; }
+
+        /* --- KARANLIK MOD (DARK MODE) CSS --- */
+        body.dark-mode { background-color: #121212; color: #e0e0e0; }
+        .dark-mode .card { background-color: #1e1e1e; color: #e0e0e0; box-shadow: 0 4px 6px rgba(255,255,255,0.05); }
+        .dark-mode .table { color: #e0e0e0; }
+        .dark-mode .table-hover tbody tr:hover { background-color: #2c2c2c; }
+        .dark-mode .table-light th { background-color: #2c2c2c; color: #fff; border-color: #444; }
+        .dark-mode .table td, .dark-mode .table th { border-color: #444; }
+        
+        /* Form elemanlarını karanlık yap */
+        .dark-mode .form-control, 
+        .dark-mode .form-select, 
+        .dark-mode .input-group-text {
+            background-color: #2c2c2c; 
+            border-color: #444; 
+            color: #fff;
+        }
+        .dark-mode .form-control::placeholder { color: #aaa; }
+        
+        /* Başlık renklerini düzelt */
+        .dark-mode .text-primary { color: #6ea8fe !important; }
+        .dark-mode .text-muted { color: #adb5bd !important; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark px-4 mb-4 shadow">
+    <span class="navbar-brand mb-0 h1"><i class="fas fa-wallet me-2"></i>Budget Tracker</span>
+    <div class="d-flex align-items-center">
+        
+        <button id="darkModeBtn" class="btn btn-outline-light btn-sm me-3 shadow-sm" title="Temayı Değiştir">
+            <i class="fas fa-moon"></i>
+        </button>
+        <a href="/investments" class="btn btn-outline-light btn-sm me-3 shadow-sm">
+            <i class="fas fa-chart-line me-1"></i> Yatırımlarım
+        </a>
+		<a href="/recurring" class="btn btn-outline-light btn-sm me-3 shadow-sm">
+		    <i class="fas fa-sync-alt me-1"></i> Otomatik İşlemler
+		</a>
+        <a th:if="${isAdmin == true}" href="/admin/dashboard" class="btn btn-warning btn-sm me-3 shadow-sm">
+            <i class="fas fa-user-shield"></i> Admin Paneli
+        </a>
+        <a href="/profile" class="text-white text-decoration-none me-3 fw-bold">
+            <i class="fas fa-user-circle me-1"></i> 
+            Merhaba, <span th:text="${currentUserName != null ? currentUserName : 'Kullanıcı'}">Kullanıcı</span>
+        </a>
+        <a href="/logout" class="btn btn-light btn-sm shadow-sm">Çıkış</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row mb-4 text-center">
+        <div class="col-md-4">
+            <div class="card bg-success text-white p-3 shadow-sm mb-2">
+                <h6>Gelir</h6>
+                <h3 th:text="${totalIncome != null ? totalIncome + ' ₺' : '0 ₺'}">0 ₺</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white p-3 shadow-sm mb-2">
+                <h6>Gider</h6>
+                <h3 th:text="${totalExpense != null ? totalExpense + ' ₺' : '0 ₺'}">0 ₺</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white p-3 shadow-sm mb-2">
+                <h6>Bakiye</h6>
+                <h3 th:text="${balance != null ? balance + ' ₺' : '0 ₺'}">0 ₺</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm p-3 mb-4" th:if="${totalIncome > 0}">
+        <div class="d-flex justify-content-between mb-1">
+            <span class="fw-bold text-muted">Gelir / Gider Dengesi</span>
+            <span class="fw-bold" th:text="${progressPercentage + '%'}">0%</span>
+        </div>
+        
+        <div class="progress" style="height: 40px; font-size: 1.1em;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                 role="progressbar" 
+                 th:style="'width: ' + ${progressPercentage} + '%'"
+                 th:classappend="${progressColor}">
+                 <span class="fw-bold" th:text="${totalExpense} + ' / ' + ${totalIncome} + ' ₺'"></span>
+            </div>
+        </div>
+        
+        <small class="text-danger mt-1 fw-bold" th:if="${progressPercentage >= 100}">
+            <i class="fas fa-exclamation-triangle"></i> Dikkat! Gelirinizden fazlasını harcadınız!
+        </small>
+        <small class="text-warning mt-1 fw-bold" th:if="${progressPercentage >= 80 and progressPercentage < 100}">
+            <i class="fas fa-exclamation-circle"></i> Dikkat! Gelirinizin sınırına yaklaştınız.
+        </small>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 offset-md-3">
+            <div class="card shadow-sm p-3">
+                <h5 class="text-center mb-3"><i class="fas fa-chart-pie me-2"></i>Harcama Dağılımı</h5>
+                <div style="height: 300px; display: flex; justify-content: center;">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm p-4">
+        
+        <div class="row mb-4 align-items-center g-3">
+            
+            <div class="col-lg-3 col-md-12">
+                <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>İşlem Kayıtları</h5>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <form action="/" method="get" class="d-flex">
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" name="keyword" class="form-control border-start-0" 
+                               placeholder="Harcama ara..." th:value="${keyword}">
+                        <button class="btn btn-primary" type="submit">Ara</button>
+                        
+                        <a th:if="${keyword != null and keyword != ''}" href="/" class="btn btn-secondary" title="Temizle">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="col-lg-5 col-md-6 d-flex justify-content-lg-end justify-content-between gap-2">
+                
+                <div class="btn-group shadow-sm" role="group">
+                    <a href="/?filter=week" class="btn btn-outline-secondary btn-sm" 
+                       th:classappend="${currentFilter == 'week' ? 'active' : ''}">Hafta</a>
+                    <a href="/?filter=month" class="btn btn-outline-secondary btn-sm" 
+                       th:classappend="${currentFilter == 'month' ? 'active' : ''}">Ay</a>
+                    <a href="/?filter=year" class="btn btn-outline-secondary btn-sm" 
+                       th:classappend="${currentFilter == 'year' ? 'active' : ''}">Yıl</a>
+                    <a href="/?filter=all" class="btn btn-outline-secondary btn-sm" 
+                       th:classappend="${currentFilter == 'all' ? 'active' : ''}">Tümü</a>
+                </div>
+
+                <a href="/api/transactions/export" class="btn btn-outline-success shadow-sm" title="Excel Olarak İndir">
+                    <i class="fas fa-file-excel me-1"></i> Excel
+                </a>
+
+                <button class="btn btn-success shadow-sm" onclick="clearModal()" data-bs-toggle="modal" data-bs-target="#transactionModal">
+                    <i class="fas fa-plus"></i> Ekle
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Açıklama</th>
+                        <th>Kategori</th>
+                        <th class="text-end">Tutar</th>
+                        <th class="text-center" style="width: 100px;">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="t : ${transactions}">
+                        <td th:text="${t.transactionDate}">-</td>
+                        <td th:text="${t.description}" class="fw-bold">-</td>
+                        <td>
+                            <span class="badge bg-secondary fs-6" 
+                                  th:text="${t.category != null ? (t.category.icon != null ? t.category.icon + ' ' : '') + t.category.name : '📂 Genel'}">
+                            </span>
+                        </td>
+                        <td class="text-end fw-bold" 
+                            th:text="${t.amount + ' ₺'}"
+                            th:classappend="${t.type.name() == 'INCOME' ? 'text-success' : 'text-danger'}"></td>
+                        
+                        <td class="text-center">
+                            <button class="btn btn-warning btn-sm action-btn text-white me-1" 
+                                    th:onclick="openEditModal([[${t.id}]], [[${t.amount}]], [[${t.description}]], [[${t.category.id}]], [[${t.type}]])"
+                                    title="Düzenle">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm action-btn" 
+                                    th:onclick="'deleteTransaction(' + ${t.id} + ')'"
+                                    title="Sil">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(transactions)}">
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            <span th:if="${keyword != null}">Aradığınız kriterde kayıt bulunamadı.</span>
+                            <span th:unless="${keyword != null}">Seçilen dönemde kayıt bulunamadı.</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Yeni İşlem Kaydı</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="transactionForm" onsubmit="event.preventDefault(); saveTransaction();">
+                    
+                    <input type="hidden" id="transactionId">
+
+                    <div class="mb-3 text-center">
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="type" id="typeExpense" value="EXPENSE" checked>
+                            <label class="btn btn-outline-danger" for="typeExpense">Gider</label>
+                            <input type="radio" class="btn-check" name="type" id="typeIncome" value="INCOME">
+                            <label class="btn btn-outline-success" for="typeIncome">Gelir</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tutar (₺)</label>
+                        <input type="number" step="0.01" id="amount" class="form-control" placeholder="0.00" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Açıklama</label>
+                        <input type="text" id="description" class="form-control" placeholder="Örn: Kira, Market..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kategori</label>
+                        <select id="categoryId" class="form-select" required>
+                            <option value="" disabled selected>Kategori Seçiniz...</option>
+                            <option th:each="cat : ${categoryList}" 
+                                    th:value="${cat.id}" 
+                                    th:text="${(cat.icon != null ? cat.icon : '') + ' ' + cat.name}">
+                            </option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                <button type="button" class="btn btn-primary px-4" onclick="saveTransaction()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // --- KARANLIK MOD JAVASCRIPT ---
+    const toggleBtn = document.getElementById('darkModeBtn');
+    const body = document.body;
+
+    // Sayfa açılınca tercihi kontrol et
+    if(localStorage.getItem('darkMode') === 'enabled') {
+        enableDarkMode();
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        if(body.classList.contains('dark-mode')) {
+            disableDarkMode();
+        } else {
+            enableDarkMode();
+        }
+    });
+
+    function enableDarkMode() {
+        body.classList.add('dark-mode');
+        localStorage.setItem('darkMode', 'enabled');
+        toggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
+        toggleBtn.title = "Gündüz Moduna Geç";
+    }
+
+    function disableDarkMode() {
+        body.classList.remove('dark-mode');
+        localStorage.setItem('darkMode', 'disabled');
+        toggleBtn.innerHTML = '<i class="fas fa-moon"></i>';
+        toggleBtn.title = "Karanlık Moda Geç";
+    }
+    // ---------------------------------
+
+    // 1. KAYDETME
+    function saveTransaction() {
+        const id = document.getElementById("transactionId").value;
+        const amount = document.getElementById("amount").value;
+        const description = document.getElementById("description").value;
+        const categoryId = document.getElementById("categoryId").value;
+        const typeEl = document.querySelector('input[name="type"]:checked');
+        const type = typeEl ? typeEl.value : "EXPENSE"; 
+
+        if(!amount || !description || !categoryId) { 
+            Swal.fire('Eksik Bilgi', 'Lütfen tüm alanları doldur!', 'warning'); 
+            return; 
+        }
+
+        const data = {
+            amount: parseFloat(amount),
+            description: description,
+            categoryId: parseInt(categoryId),
+            type: type
+        };
+
+        let url = '/api/transactions';
+        let method = 'POST';
+
+        if (id) {
+            url = '/api/transactions/' + id;
+            method = 'PUT';
+        }
+
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(async res => {
+            if(res.ok) {
+                var myModalEl = document.getElementById('transactionModal');
+                var modal = bootstrap.Modal.getInstance(myModalEl);
+                modal.hide();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Başarılı!',
+                    text: 'İşlem başarıyla kaydedildi.',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => window.location.reload());
+            } else {
+                const errorText = await res.text();
+                Swal.fire('Hata', errorText, 'error');
+            }
+        });
+    }
+
+    // 2. SİLME
+    function deleteTransaction(id) {
+        Swal.fire({
+            title: 'Emin misin?',
+            text: "Bu işlemi silersen geri alamazsın!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Evet, Sil!',
+            cancelButtonText: 'Vazgeç'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/api/transactions/' + id, { method: 'DELETE' })
+                .then(res => {
+                    if(res.ok) {
+                        Swal.fire(
+                            'Silindi!',
+                            'İşlem başarıyla silindi.',
+                            'success'
+                        ).then(() => window.location.reload());
+                    } else {
+                        Swal.fire('Hata', 'Silinemedi.', 'error');
+                    }
+                });
+            }
+        })
+    }
+
+    // 3. DÜZENLEME MODALI
+    function openEditModal(id, amount, description, categoryId, type) {
+        document.getElementById("transactionId").value = id;
+        document.getElementById("amount").value = amount;
+        document.getElementById("description").value = description;
+        document.getElementById("categoryId").value = categoryId;
+        
+        if(type === 'INCOME') document.getElementById("typeIncome").checked = true;
+        else document.getElementById("typeExpense").checked = true;
+
+        document.getElementById("modalTitle").innerText = "İşlemi Düzenle";
+        
+        var myModal = new bootstrap.Modal(document.getElementById('transactionModal'));
+        myModal.show();
+    }
+
+    // 4. MODALI TEMİZLE
+    function clearModal() {
+        document.getElementById("transactionId").value = "";
+        document.getElementById("transactionForm").reset();
+        document.getElementById("modalTitle").innerText = "Yeni İşlem Kaydı";
+    }
+
+    // 5. GRAFİK
+    document.addEventListener("DOMContentLoaded", function() {
+        fetch('/api/transactions/chart-data')
+            .then(response => response.json())
+            .then(data => {
+                if (!data || data.length === 0) return;
+                const labels = data.map(item => item.name);
+                const amounts = data.map(item => item.amount);
+                const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#2ecc71', '#e74c3c'];
+                const ctx = document.getElementById('expenseChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: amounts,
+                            backgroundColor: colors.slice(0, data.length),
+                            borderWidth: 0, // Karanlık modda kenarlık güzel durmaz
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: document.body.classList.contains('dark-mode') ? 'white' : 'gray' } } } }
+                });
+            });
+    });
+</script>
+
+</body>
+</html>

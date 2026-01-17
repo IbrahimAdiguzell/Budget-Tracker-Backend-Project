@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Giriş Yap - BudgetTracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #007991 0%, #78ffd6 100%); /* Teal/Turkuaz Gradyan */
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .auth-card {
+            background: rgba(255, 255, 255, 0.9); /* Hafif şeffaf beyaz */
+            backdrop-filter: blur(15px); /* Cam bulanıklığı efekti */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            overflow: hidden;
+            max-width: 400px;
+            width: 90%;
+        }
+        .auth-header {
+            background: rgb(0, 128, 128); /* Ana renk */
+            background: linear-gradient(to right, rgb(0, 128, 128), #00b894);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .auth-body {
+            padding: 40px 30px;
+        }
+        .input-group-text {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid #eee;
+            color: rgb(0, 128, 128);
+            font-size: 1.2rem;
+        }
+        .form-control {
+            border: none;
+            border-bottom: 2px solid #eee;
+            border-radius: 0;
+            padding: 10px 5px;
+            background: transparent;
+        }
+        .form-control:focus {
+            box-shadow: none;
+            border-bottom-color: rgb(0, 128, 128);
+        }
+        .btn-auth {
+            background: linear-gradient(to right, rgb(0, 128, 128), #00b894);
+            border: none;
+            border-radius: 50px;
+            padding: 12px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: white;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .btn-auth:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 128, 128, 0.3);
+            color: white;
+        }
+        .auth-links a {
+            color: rgb(0, 128, 128);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        .auth-links a:hover { color: #005f5f; }
+    </style>
+</head>
+<body>
+
+<div class="auth-card">
+    <div class="auth-header">
+        <h2 class="fw-bold mb-0"><i class="fas fa-wallet me-2"></i>BudgetTracker</h2>
+        <p class="mb-0 opacity-75">Tekrar Hoşgeldiniz!</p>
+    </div>
+    <div class="auth-body">
+        
+        <div th:if="${param.verified}" class="alert alert-success text-center small mb-4">
+            Hesabınız doğrulandı. Giriş yapabilirsiniz.
+        </div>
+        <div th:if="${param.logout}" class="alert alert-info text-center small mb-4">
+            Başarıyla çıkış yapıldı.
+        </div>
+
+        <form onsubmit="event.preventDefault(); loginUser();">
+            <div class="mb-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                    <input type="text" id="email" name="email" class="form-control" placeholder="Email Adresi" required>
+                </div>
+            </div>
+            <div class="mb-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Şifre" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-auth">GİRİŞ YAP</button>
+        </form>
+
+        <div class="auth-links text-center mt-4">
+            <p class="text-muted mb-1">Hesabın yok mu?</p>
+            <a href="/register">Hemen Kayıt Ol <i class="fas fa-arrow-right small ms-1"></i></a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loginUser() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        // Veriyi JSON formatına hazırlıyoruz
+        const data = {
+            email: email,
+            password: password
+        };
+
+        // Backend'e istek atıyoruz
+        fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json' // İŞTE ÇÖZÜM BURASI!
+            },
+            body: JSON.stringify(data) // Veriyi JSON string'e çevir
+        })
+        .then(async response => {
+            if (response.ok) {
+                // Giriş Başarılı!
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Giriş Başarılı!',
+                    text: 'Yönlendiriliyorsunuz...',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    window.location.href = '/'; // Ana sayfaya git
+                });
+            } else {
+                // Hata Var!
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata!',
+                    text: 'Email veya şifre yanlış!'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Sunucu Hatası',
+                text: 'Sunucuyla bağlantı kurulamadı.'
+            });
+        });
+    }
+</script>
+
+</body>
+</html>
